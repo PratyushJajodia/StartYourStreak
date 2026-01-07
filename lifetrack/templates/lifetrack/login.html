@@ -1,30 +1,47 @@
 {% extends 'lifetrack/base.html' %}
 
-{% block title %}Login{% endblock %}
+{% block title %}Login | LifeTrack{% endblock %}
 
 {% block content %}
-<div class="card" style="display:block; max-width:400px; margin:50px auto;">
-    <h2 style="text-align:center;">Return to Base</h2>
+<div class="max-w-sm mx-auto mt-16">
+    <div class="glass-card p-8">
+        <div class="text-center mb-8">
+            <h2 class="text-2xl font-bold text-white">Welcome Back</h2>
+            <p class="text-slate-400 text-sm mt-2">Resume your progress</p>
+        </div>
 
-    {% if error %}
-    <div style="color:var(--danger-color); text-align:center; margin-bottom:15px;">{{ error }}</div>
-    {% endif %}
+        {% if error %}
+        <div class="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm text-center">
+            {{ error }}
+        </div>
+        {% endif %}
 
-    <form method="POST">
-        {% csrf_token %}
-        <input type="hidden" name="form" value="login">
+        <form method="POST" class="space-y-5">
+            {% csrf_token %}
+            <input type="hidden" name="form" value="login">
 
-        <label>Username</label>
-        <input type="text" name="username" required>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Username</label>
+                <input type="text" name="username" required
+                    class="w-full px-4 py-3 rounded-xl bg-dark-900/50 border border-dark-700 text-white focus:border-accent-cyan focus:ring-1 focus:ring-accent-cyan outline-none transition-all">
+            </div>
 
-        <label>Password</label>
-        <input type="password" name="password" required>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Password</label>
+                <input type="password" name="password" required
+                    class="w-full px-4 py-3 rounded-xl bg-dark-900/50 border border-dark-700 text-white focus:border-accent-cyan focus:ring-1 focus:ring-accent-cyan outline-none transition-all">
+            </div>
 
-        <button type="submit" class="btn" style="width:100%;">Login</button>
-    </form>
+            <button type="submit"
+                class="w-full py-3.5 rounded-xl bg-white text-dark-900 font-bold hover:bg-slate-200 transition-colors mt-4">
+                Login
+            </button>
+        </form>
 
-    <p style="text-align:center; margin-top:20px; font-size:0.9rem;">
-        New player? <a href="{% url 'lifetrack:signup' %}" style="color:var(--accent-color);">Sign up</a>
-    </p>
+        <p class="text-center mt-6 text-sm text-slate-400">
+            First time? <a href="{% url 'lifetrack:signup' %}" class="text-accent-cyan hover:underline">Create
+                Account</a>
+        </p>
+    </div>
 </div>
 {% endblock %}

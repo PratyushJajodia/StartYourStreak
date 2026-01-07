@@ -1,42 +1,153 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}LifeTrack{% endblock %}</title>
-    <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/gamified.css' %}">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- Simplify AJAX -->
+    <title>{% block title %}LifeTrack Pro{% endblock %}</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- TailwindCSS (CDN for rapid prototyping) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        dark: {
+                            900: '#0f172a', // Slate 900
+                            800: '#1e293b', // Slate 800
+                            700: '#334155', // Slate 700
+                        },
+                        accent: {
+                            cyan: '#06b6d4', // Cyan 500
+                            neon: '#22d3ee', // Cyan 400
+                            rose: '#f43f5e', // Rose 500
+                            green: '#10b981', // Emerald 500
+                        }
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom Styles for Glassmorphism & Animations -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .glass {
+                @apply bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl;
+            }
+            .glass-card {
+                @apply bg-dark-800/80 backdrop-blur-md border border-dark-700 shadow-lg rounded-2xl;
+            }
+            .text-gradient {
+                @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-cyan to-accent-neon;
+            }
+        }
+        
+        body {
+            background-color: #020617; /* Deepest Slate */
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(244, 63, 94, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: #e2e8f0; /* Slate 200 */
+        }
+    </style>
 </head>
 
-<body>
-    <div class="container">
-        <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 30px;">
-            <h1 style="color:var(--accent-color); margin:0;">LifeTrack<span
-                    style="font-size:0.5em; color:white;">PRO</span></h1>
+<body class="antialiased min-h-screen flex flex-col">
+    <!-- Navbar -->
+    <nav class="glass sticky top-0 z-50 px-6 py-4 mb-8">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="{% url 'lifetrack:index' %}" class="flex items-center gap-2 group">
+                <div
+                    class="relative w-8 h-8 rounded-lg bg-gradient-to-br from-accent-cyan to-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <i data-lucide="zap" class="text-white w-5 h-5 fill-current"></i>
+                </div>
+                <span class="text-2xl font-bold tracking-tight text-white">LifeTrack<span
+                        class="text-accent-cyan">Pro</span></span>
+            </a>
+
             {% if user.is_authenticated %}
-            <nav>
-                <span style="margin-right:15px;">{{ user.username }}</span>
-                <a href="{% url 'lifetrack:logout' %}"
-                    style="color:var(--text-secondary); text-decoration:none;">Logout</a>
-            </nav>
+            <div class="flex items-center gap-6">
+                <a href="{% url 'lifetrack:achievements' %}"
+                    class="flex items-center gap-2 text-slate-400 hover:text-accent-cyan transition-colors"
+                    title="Achievements">
+                    <i data-lucide="trophy" class="w-5 h-5"></i>
+                    <span class="hidden sm:inline font-medium">Achievements</span>
+                </a>
+                <!-- XP Bar / Level Display could go here in header or main dash -->
+
+                <div class="flex items-center gap-4">
+                    <div class="text-right hidden sm:block">
+                        <div class="text-sm font-bold text-white">{{ user.username }}</div>
+                        <div class="text-xs text-slate-400">Level {{ user.profile.level|default:"1" }}</div>
+                    </div>
+                    <div
+                        class="w-10 h-10 rounded-full bg-dark-700 border-2 border-accent-cyan flex items-center justify-center overflow-hidden">
+                        {% if user.profile.avatar_url %}
+                        <img src="{{ user.profile.avatar_url }}" alt="Avatar" class="w-full h-full object-cover">
+                        {% else %}
+                        <span class="text-lg">👤</span>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'lifetrack:logout' %}"
+                        class="p-2 rounded-full hover:bg-dark-700 transition-colors text-slate-400 hover:text-white"
+                        title="Logout">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </a>
+                </div>
+            </div>
+            {% else %}
+            <div class="flex gap-4">
+                <a href="{% url 'lifetrack:login' %}"
+                    class="px-4 py-2 text-slate-300 hover:text-white transition-colors">Login</a>
+                <a href="{% url 'lifetrack:signup' %}"
+                    class="px-5 py-2 rounded-full bg-accent-cyan hover:bg-cyan-400 text-white font-semibold transition-all hover:shadow-[0_0_20px_rgba(6,182,212,0.5)]">
+                    Get Started
+                </a>
+            </div>
             {% endif %}
-        </header>
+        </div>
+    </nav>
 
-        <main>
-            {% block content %}
-            {% endblock %}
-        </main>
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+        {% block content %}
+        {% endblock %}
+    </main>
 
-        <footer style="margin-top:50px; text-align:center; color:#555; font-size:0.8rem;">
-            &copy; {% now "Y" %} LifeTrack Gamified
-        </footer>
-    </div>
+    <!-- Footer -->
+    <footer class="mt-20 py-8 border-t border-dark-700/50 text-center text-slate-500 text-sm">
+        <p>&copy; {% now "Y" %} LifeTrack Gamified. Level Up Your Life.</p>
+    </footer>
 
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 

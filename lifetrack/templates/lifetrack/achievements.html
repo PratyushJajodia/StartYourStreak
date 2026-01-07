@@ -1,0 +1,65 @@
+{% extends 'lifetrack/base.html' %}
+
+{% block title %}Achievements | LifeTrack{% endblock %}
+
+{% block content %}
+<div class="mb-12 text-center">
+    <h1 class="text-4xl font-bold text-white mb-4">Hall of Fame</h1>
+    <p class="text-slate-400">Track your milestones and earn rewards.</p>
+</div>
+
+<div class="glass-card p-8 min-h-[500px]">
+    {% if all_achievements %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for achievement in all_achievements %}
+        {% if achievement.id in earned_ids %}
+        <!-- Unlocked Achievement -->
+        <div
+            class="relative p-6 rounded-2xl bg-gradient-to-br from-dark-800 to-dark-900 border border-accent-cyan/30 shadow-[0_0_15px_rgba(6,182,212,0.15)] group hover:scale-[1.02] transition-transform">
+            <div class="absolute top-4 right-4 text-accent-cyan">
+                <i data-lucide="check-circle" class="w-6 h-6"></i>
+            </div>
+            <div
+                class="w-16 h-16 rounded-full bg-dark-700 flex items-center justify-center text-3xl mb-4 border-2 border-accent-cyan shadow-[0_0_10px_rgba(6,182,212,0.4)]">
+                {{ achievement.icon|default:"🏆" }}
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">{{ achievement.name }}</h3>
+            <p class="text-sm text-slate-400 mb-4">{{ achievement.description }}</p>
+            <div class="flex items-center justify-between text-xs font-bold">
+                <span class="text-accent-cyan">+{{ achievement.xp_reward }} XP</span>
+                <span class="text-slate-500">Unlocked</span>
+            </div>
+        </div>
+        {% else %}
+        <!-- Locked Achievement -->
+        <div
+            class="relative p-6 rounded-2xl bg-dark-900/50 border border-dark-800 opacity-70 hover:opacity-100 transition-opacity">
+            <div class="absolute top-4 right-4 text-slate-600">
+                <i data-lucide="lock" class="w-6 h-6"></i>
+            </div>
+            <div
+                class="w-16 h-16 rounded-full bg-dark-800 flex items-center justify-center text-3xl mb-4 grayscale text-slate-600">
+                {{ achievement.icon|default:"🏆" }}
+            </div>
+            <h3 class="text-xl font-bold text-slate-300 mb-2">{{ achievement.name }}</h3>
+            <p class="text-sm text-slate-500 mb-4">???</p> <!-- Hide description? Or show goal? Let's show goal. -->
+            <p class="text-sm text-slate-500 mb-4">{{ achievement.description }}</p>
+            <div class="flex items-center justify-between text-xs font-bold">
+                <span class="text-slate-600">+{{ achievement.xp_reward }} XP</span>
+                <span class="text-slate-600">Locked</span>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-20">
+        <div class="w-20 h-20 bg-dark-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i data-lucide="award" class="w-10 h-10 text-slate-600"></i>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">No Achievements Found</h3>
+        <p class="text-slate-400">The developers haven't added any trophies yet!</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -12,4 +12,5 @@ urlpatterns = [
     path('create/', views.create_habit, name='create_habit'),
     path('delete/<int:habit_id>/', views.delete_habit, name='delete_habit'),
     path('toggle/', views.toggle_habit, name='toggle_habit'),
+    path('achievements/', views.achievements, name='achievements'),
 ]

@@ -1,20 +1,42 @@
 {% extends 'lifetrack/base.html' %}
 
-{% block title %}Sign Up{% endblock %}
+{% block title %}Sign Up | LifeTrack{% endblock %}
 
 {% block content %}
-<div class="card" style="display:block; max-width:400px; margin:50px auto;">
-    <h2 style="text-align:center;">Join the Game</h2>
+<div class="max-w-sm mx-auto mt-16">
+    <div class="glass-card p-8 relative overflow-hidden">
+        <!-- Decoration -->
+        <div
+            class="absolute top-0 right-0 w-32 h-32 bg-accent-cyan/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2">
+        </div>
 
-    <form method="POST">
-        {% csrf_token %}
-        {{ form.as_p }}
+        <div class="text-center mb-8 relative z-10">
+            <h2 class="text-2xl font-bold text-white">Join the Game</h2>
+            <p class="text-slate-400 text-sm mt-2">Your journey starts here</p>
+        </div>
 
-        <button type="submit" class="btn" style="width:100%; margin-top:20px;">Create Account</button>
-    </form>
+        <form method="POST" class="space-y-5 relative z-10">
+            {% csrf_token %}
 
-    <p style="text-align:center; margin-top:20px; font-size:0.9rem;">
-        Already have an account? <a href="{% url 'lifetrack:login' %}" style="color:var(--accent-color);">Login</a>
-    </p>
+            <!-- Django Form Rendering with custom widget tweaks via JS or simple wrappers? 
+                 Django's {{ form.as_p }} renders ugly <p> tags. 
+                 Ideally we iterate fields, but for speed, let's wrap it in a styled div 
+                 and use CSS to target the inputs inside. -->
+
+            <div
+                class="signup-form-wrapper text-slate-300 [&_input]:w-full [&_input]:px-4 [&_input]:py-3 [&_input]:rounded-xl [&_input]:bg-dark-900/50 [&_input]:border [&_input]:border-dark-700 [&_input]:text-white [&_input]:mb-4 [&_input]:outline-none [&_input]:focus:border-accent-cyan [&_label]:block [&_label]:text-xs [&_label]:font-bold [&_label]:text-slate-500 [&_label]:uppercase [&_label]:mb-2">
+                {{ form.as_p }}
+            </div>
+
+            <button type="submit"
+                class="w-full py-3.5 rounded-xl bg-accent-cyan text-white font-bold hover:bg-cyan-400 shadow-lg shadow-cyan-500/20 transition-all mt-4">
+                Initialize Player
+            </button>
+        </form>
+
+        <p class="text-center mt-6 text-sm text-slate-400 relative z-10">
+            Have a save file? <a href="{% url 'lifetrack:login' %}" class="text-accent-cyan hover:underline">Login</a>
+        </p>
+    </div>
 </div>
 {% endblock %}
