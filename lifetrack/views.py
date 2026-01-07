@@ -1,166 +1,119 @@
-from django.shortcuts import render,redirect,resolve_url as resolve
-from django.urls import reverse
-from django.http import HttpResponse
-from django.http.response import HttpResponseRedirectBase as RedirBase
-from django.contrib.auth import authenticate as auth,login as li,logout
-from lifetrack.models import *
-from lifetrack.forms import *
-from datetime import date,timedelta as Δt
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import login as auth_login, logout as auth_logout, authenticate
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from .models import Habit, Occurence
+from .forms import UserForm # We might need to update forms.py too
+from datetime import date, timedelta
 
-F=['daily','weekly','monthly']
-WD=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
-RD=['Yesterday','Today']
-RW=['Last Week','This Week']
-MÞ=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-RM=['Last Month','This Month']
-adj={'daily':lambda x:x,'weekly':lambda x:x-Δt(days=x.weekday()),'monthly':lambda x:x.replace(day=1)}
-maxnr={'daily':7,'weekly':8,'monthly':10}
-class HttpResponsePassthruRedirect(RedirBase):
-    status_code=307
-def add(p,f,v,m,F,V):
-	att,err='',{}
-	if p.get('form')=='add':
-		el=f(p)
-		if el.is_valid():
-			att=el.cleaned_data['name']
-			try:f.Meta.model.objects.get(name=att,**v)
-			except f.Meta.model.DoesNotExist:
-				e=el.save(commit=False);F(e,**V);e.save()
-			else:err={'name':[m.format(att=att)]}
-		else:err=dict(el.errors)
-	return att,err
-def al(l,u):l.user=u
-def ah(h,l):h.list=l;h.sdate=adj[l.freq](h.sdate)
-def edit(p,f,v,m,F,e,att):
-	err={}
-	if s:=p.get('form'):
-		if s=='save':
-			el=f(p)
-			if el.is_valid():
-				att=el.cleaned_data['name']
-				try:
-					f.Meta.model.objects.get(name=att,**v)
-				except f.Meta.model.DoesNotExist:pass
-				else:
-					if e.name!=att:err={'name':[m.format(att=att)]}
-				if not err:e.name=att;F(e,el.cleaned_data);e.save()
-			else:err=dict(el.errors)
-		elif s=='delete':
-			e.delete()
-	return att,err
-def el(l,f):l.freq=f['freq']
-def eh(h,d):h.sdate=adj[h.list.freq](d['sdate'])
+def index(request):
+    if request.user.is_authenticated:
+        return redirect('lifetrack:dashboard')
+    return render(request, 'lifetrack/landing.html')
 
-def index(r):
-	return render(r,'lifetrack/index.html')
+def login_view(request):
+    if request.method == 'POST':
+        u = request.POST.get('username')
+        p = request.POST.get('password')
+        user = authenticate(username=u, password=p)
+        if user:
+            auth_login(request, user)
+            return redirect('lifetrack:dashboard')
+        else:
+            return render(request, 'lifetrack/login.html', {'error': 'Invalid credentials'})
+    return render(request, 'lifetrack/login.html')
 
-def login(r):
-	err={};status=200;uf=UserForm()
-	if r.method=='POST':
-		if r.POST.get('form')=='login':
-			n=r.POST.get('username');p=r.POST.get('password')
-			l=auth(username=n,password=p)
-			if l:
-				if l.is_active:li(r,l);return redirect(reverse('lifetrack:index'))
-				else:status=401;err={'login':['Sorry, your account is disabled ☹︎ You must\'ve done something really wrong']}
-			else:status=401;err={'login':['Bad username or password']}
-		elif r.POST.get('form')=='signup':
-			uf=UserForm(r.POST)
-			if uf.is_valid():
-				l=uf.save();l.set_password(l.password);l.save()
-				err={'':['Thanks for registering!','Now try logging in ☺︎ (if it doesn\'t work someone\'s done something wrong — hopefully not us!)']}
-			else:err=dict(uf.errors)
-		else:err={'':['You\'ve done something very strange and sent us a request we don\'t understand']}
-	return render(r,'lifetrack/login.html',context={'err':err},status=status)
+def signup_view(request):
+    if request.method == 'POST':
+        form = UserForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            user.set_password(user.password)
+            user.save()
+            auth_login(request, user)
+            return redirect('lifetrack:dashboard')
+    else:
+        form = UserForm()
+    return render(request, 'lifetrack/signup.html', {'form': form})
 
-def lists(r):
-	if not r.user.is_authenticated:return render(r,'lifetrack/loggedout.html',status=401)
-	dt=date.today()
-	dy=[dt-Δt(days=i)for i in range(maxnr['daily'])][::-1]
-	dyn=[WD[d.weekday()]for d in dy][:-len(RD)]+RD
-	wt=adj['weekly'](dt);wk=[wt-Δt(days=i*7)for i in range(maxnr['weekly'])][::-1];wkn=[f'W/b {d.day}/{d.month}'for d in wk][:-len(RW)]+RW
-	mt=adj['monthly'](dt);mþ=[mt];
-	for i in range(maxnr['monthly']-1):mþ.append(mt:=(mt-Δt(days=1)).replace(day=1))
-	mþ=mþ[::-1];mþn=[MÞ[d.month-1]for d in mþ][:-len(RM)]+RM
-	lss=[]
-	ls=HabitList.objects.filter(user=r.user).order_by('name')
-	for l in ls:
-		c={'l':l};hb=Habit.objects.filter(list=l).order_by('name')
-		if hb:
-			lh=[]
-			sd=min([h.sdate for h in hb])
-			ld=[d for d in zip(*{'daily':(dy,dyn),'weekly':(wk,wkn),'monthly':(mþ,mþn)}[l.freq])if d[0]>=sd]
-			for h in Habit.objects.filter(list=l).order_by('name'):
-				hc={'h':h,'o':[(d[0].isoformat(),Occurence.objects.filter(date=d[0],habit=h).exists(),d[0]>=h.sdate)for d in ld]};lh.append(hc)
-			c['h']=lh;c['d']=[d[1]for d in ld];
-		lss.append(c)
-	return render(r,'lifetrack/lists.html',context={'ls':lss})
+def logout_view(request):
+    auth_logout(request)
+    return redirect('lifetrack:index')
 
-def addlist(r):
-	if not r.user.is_authenticated:return render(r,'lifetrack/loggedout.html',status=401)
-	freq=''
-	if r.method=='POST':freq=r.POST.get('freq')
-	att,err=add(r.POST,ListForm,{'user':r.user},'You already have a habit list named {att}',al,{'u':r.user})
-	if err or not r.POST.get('form'):return render(r,'lifetrack/addlist.html',context={'attempt':att,'freq':freq,'f':F,'err':err})
-	else:return redirect(reverse('lifetrack:lists'))
+@login_required
+def dashboard(request):
+    habits = Habit.objects.filter(user=request.user).order_by('-created_at')
+    # Pre-calculate completion status for today to pass to template
+    today = date.today()
+    for h in habits:
+        h.completed_today = Occurence.objects.filter(habit=h, date=today).exists()
+    
+    return render(request, 'lifetrack/dashboard.html', {'habits': habits})
 
-def editlist(r):
-	if not r.user.is_authenticated:return render(r,'lifetrack/loggedout.html',status=401)
-	if r.method!='POST':return render(r,'lifetrack/invalid.html',status=400)
-	L=r.POST.get('ls')
-	try:l=HabitList.objects.get(user=r.user,name=L)
-	except HabitList.DoesNotExist:return render(r,'lifetrack/missing.html',status=404)
-	freq=l.freq
-	hb=Habit.objects.filter(list=l).order_by('name')
-	if h:=r.POST.get('hb'):
-		return HttpResponsePassthruRedirect(resolve(reverse('lifetrack:edithabit')))
-	att,err=edit(r.POST,ListForm,{'user':r.user},'You already have a habit list named {att}',el,l,L)
-	if r.POST.get('form')=='addhabit':
-		return HttpResponsePassthruRedirect(resolve(reverse('lifetrack:addhabit')))
-	if err or not r.POST.get('form'):
-		return render(r,'lifetrack/editlist.html',context={'ls':L,'freq':freq,'hb':hb,'attempt':att,'err':err})
-	else:return redirect(reverse('lifetrack:lists'))
+@login_required
+def create_habit(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        if name:
+            Habit.objects.create(user=request.user, name=name)
+        return redirect('lifetrack:dashboard')
+    return render(request, 'lifetrack/create_habit.html')
 
-def addhabit(r):
-	if not r.user.is_authenticated:return render(r,'lifetrack/loggedout.html',status=401)
-	if r.method!='POST':return render(r,'lifetrack/invalid.html',status=400)
-	L=r.POST.get('ls')
-	try:l=HabitList.objects.get(user=r.user,name=L)
-	except HabitList.DoesNotExist:return render(r,'lifetrack/missing.html',status=404)
-	att,err=add(r.POST,HabitForm,{'list':l},'You already have a habit named {att}'+f' in the list {L}',ah,{'l':l})
-	if err or r.POST.get('form')=='addhabit':return render(r,'lifetrack/addhabit.html',context={'ls':L,'attempt':att,'date':date.today().isoformat(),'err':err})
-	else:return HttpResponsePassthruRedirect(resolve(reverse('lifetrack:editlist')))
+@login_required
+def delete_habit(request, habit_id):
+    habit = get_object_or_404(Habit, id=habit_id, user=request.user)
+    habit.delete()
+    return redirect('lifetrack:dashboard')
 
-def edithabit(r):
-	if not r.user.is_authenticated:return render(r,'lifetrack/loggedout.html',status=401)
-	if r.method!='POST':return render(r,'lifetrack/invalid.html',status=400)
-	L,H=r.POST.get('ls'),r.POST.get('hb')
-	att=H
-	try:l=HabitList.objects.get(user=r.user,name=L)
-	except HabitList.DoesNotExist:return render(r,'lifetrack/missing.html',status=404)
-	try:h=Habit.objects.get(name=H,list=l)
-	except Habit.DoesNotExist:return render(r,'lifetrack/missing.html',status=404)
-	sdate=r.POST.get('sdate');sdate=sdate if sdate else h.sdate.isoformat()
-	att,err=edit(r.POST,HabitForm,{'list':l},'You already have a habit list named {att}',eh,h,H)
-	if err or not r.POST.get('form'):
-		return render(r,'lifetrack/edithabit.html',context={'hb':h,'ls':l,'sdate':sdate,'attempt':att,'err':err})
-	else:return redirect(reverse('lifetrack:lists'))
+@login_required
+@require_POST
+def toggle_habit(request):
+    habit_id = request.POST.get('habit_id')
+    habit = get_object_or_404(Habit, id=habit_id, user=request.user)
+    today = date.today()
+    
+    occurrence, created = Occurence.objects.get_or_create(habit=habit, date=today)
+    
+    if not created:
+        # If it already existed, we are toggling OFF
+        occurrence.delete()
+        completed = False
+    else:
+        # Toggled ON
+        completed = True
+        
+    # Recalculate Streak
+    # Simple algorithm: count consecutive days backwards from today (or yesterday)
+    streak = 0
+    check_date = today
+    
+    # 1. Check today's status
+    if Occurence.objects.filter(habit=habit, date=today).exists():
+        streak += 1
+        check_date -= timedelta(days=1)
+    elif Occurence.objects.filter(habit=habit, date=today - timedelta(days=1)).exists():
+        # Allowed to continue streak if today is missed but yesterday was done (until midnight passes)
+        # But for *current* value, if not done today, is streak broken? 
+        # Usually streak counts completed days. If I haven't done it today, my streak is technically valid from yesterday.
+        pass
+    else:
+        streak = 0
+        
+    # Walk backwards
+    while True:
+        if Occurence.objects.filter(habit=habit, date=check_date).exists():
+             if check_date != today: # Avoid double counting if we started with today
+                streak += 1
+             check_date -= timedelta(days=1)
+        else:
+            break
+            
+    habit.current_streak = streak
+    if streak > habit.longest_streak:
+        habit.longest_streak = streak
+    
+    habit.last_completed_date = today if completed else (today - timedelta(days=1)) # Approx
+    habit.save()
 
-def log_out(r):
-	logout(r)
-	return redirect(reverse('lifetrack:index'))
-
-def occur(r):
-	if r.method!='POST':return HttpResponse('Bad request',status=400)
-	s={'y':True,'n':False}[r.POST.get('set')]
-	dt=date.fromisoformat(r.POST.get('dt'))
-	try:hb=Habit.objects.get(list=HabitList.objects.get(user=r.user,name=r.POST.get('ls')),name=r.POST.get('hb'))
-	except(HabitList.DoesNotExist,Habit.DoesNotExist):set=not s
-	try:
-		oc=Occurence.objects.get(date=dt,habit=hb);
-		if not s:oc.delete();set=False
-		else:set=True
-	except Occurence.DoesNotExist:
-		if s:oc=Occurence(date=dt,habit=hb);oc.save();set=True
-		else:set=False
-	return HttpResponse(f"{['n','y'][set]}")
+    return JsonResponse({'status': 'ok', 'completed': completed, 'streak': streak})

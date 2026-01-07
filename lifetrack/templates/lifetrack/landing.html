@@ -1,0 +1,30 @@
+{% extends 'lifetrack/base.html' %}
+{% load static %}
+
+{% block title %}LifeTrack - Gamify Your Life{% endblock %}
+
+{% block content %}
+<div style="text-align:center; padding:50px 0;">
+    <h1 style="font-size:3rem; margin-bottom:10px;">Level Up Your Life 🚀</h1>
+    <p style="font-size:1.2rem; color:var(--text-secondary); max-width:600px; margin:0 auto 40px;">
+        Track habits, build streaks, and maintain your momentum with the ultimate gamified habit tracker.
+    </p>
+
+    <div style="display:flex; justify-content:center; gap:20px;">
+        <a href="{% url 'lifetrack:login' %}" class="btn">Login</a>
+        <a href="{% url 'lifetrack:signup' %}" class="btn"
+            style="background:#333; color:white; border:1px solid #555;">Sign Up</a>
+    </div>
+
+    <div style="margin-top:60px;">
+        <div class="card" style="display:inline-block; text-align:left; max-width:300px;">
+            <h3>🔥 Streaks</h3>
+            <p style="color:#888;">Keep the fire burning by completing tasks daily.</p>
+        </div>
+        <div class="card" style="display:inline-block; text-align:left; max-width:300px; margin-left:20px;">
+            <h3>🌙 Nightly Reminders</h3>
+            <p style="color:#888;">Get notified before your day ends so you never miss a beat.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

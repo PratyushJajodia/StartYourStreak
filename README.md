@@ -1,8 +1,19 @@
-# lifetrack
+# LifeTrack: Minimalist Habit Tracker
 
-A Habit Tracking Web App.
-Primarily for University Coursework purposes.
-More info to be added by someone more eloquent than I.
+A simple, focused Django web application designed to help you build and maintain daily habits through streak tracking.
+
+**LifeTrack** is a lightweight habit tracking application built with Python and Django. It provides a distraction-free environment to define your daily goals and track your consistency.
+
+**Key Features:**
+*   **Streak Tracking**: Automatically calculates your current and longest streaks to keep you motivated.
+*   **User Accounts**: specific user data isolation with secure authentication.
+*   **Intuitive Dashboard**: View all your active habits and their status at a glance.
+*   **History**: Tracks your last completed date and consistency over time.
+
+**Tech Stack:**
+*   Python 3.11+
+*   Django
+*   SQLite / Postgres (Ready)
 
 Requires Python & Django
 (building and testing against versions 3.11 and 2.2.28 respectively).

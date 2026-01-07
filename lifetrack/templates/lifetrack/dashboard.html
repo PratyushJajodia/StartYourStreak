@@ -1,0 +1,99 @@
+{% extends 'lifetrack/base.html' %}
+
+{% block title %}My Dashboard{% endblock %}
+
+{% block content %}
+<div class="header" style="text-align:center; margin-bottom:40px;">
+    <h2>Your Daily Quests</h2>
+    <a href="{% url 'lifetrack:create_habit' %}" class="btn">+ New Quest</a>
+</div>
+
+<div id="habits-list">
+    {% for habit in habits %}
+    <div class="card" id="habit-card-{{ habit.id }}">
+        <div>
+            <h3 style="margin:0 0 5px 0;">{{ habit.name }}</h3>
+            <div class="streak-counter">
+                <span class="fire-icon">🔥</span>
+                <span id="streak-val-{{ habit.id }}">{{ habit.current_streak }}</span> day streak
+            </div>
+            {% if habit.longest_streak > 0 %}
+            <div style="font-size:0.8rem; color:#666; margin-top:5px;">Record: {{ habit.longest_streak }}</div>
+            {% endif %}
+        </div>
+
+        <div style="display:flex; align-items:center; gap:15px;">
+            <button class="check-btn {% if habit.completed_today %}completed{% endif %}"
+                onclick="toggleHabit({{ habit.id }})" id="btn-{{ habit.id }}">
+                ✓
+            </button>
+            <a href="{% url 'lifetrack:delete_habit' habit.id %}"
+                style="color:var(--danger-color); text-decoration:none; font-size:1.5rem;">×</a>
+        </div>
+    </div>
+    {% empty %}
+    <div style="text-align:center; padding:50px; color:#666;">
+        <p>No quests active. Start your journey!</p>
+    </div>
+    {% endfor %}
+</div>
+
+{% csrf_token %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function toggleHabit(habitId) {
+        const btn = document.getElementById(`btn-${habitId}`);
+        const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        $.ajax({
+            url: "{% url 'lifetrack:toggle_habit' %}",
+            type: "POST",
+            data: {
+                'habit_id': habitId,
+                'csrfmiddlewaretoken': csrf
+            },
+            success: function (response) {
+                if (response.status === 'ok') {
+                    // Update streak
+                    $(`#streak-val-${habitId}`).text(response.streak);
+
+                    // Toggle class
+                    if (response.completed) {
+                        btn.classList.add('completed');
+                        // Animation maybe?
+                    } else {
+                        btn.classList.remove('completed');
+                    }
+
+                    // Notification Logic (Simple Browser Alert for now)
+                    if (response.completed) {
+                        // if (Notification.permission === "granted") { ... }
+                    }
+                }
+            }
+        });
+    }
+
+    // Request notification permission on load
+    if ("Notification" in window) {
+        if (Notification.permission !== "denied") {
+            Notification.requestPermission();
+        }
+    }
+
+    // Nightly Reminder Logic (Client Side Check)
+    setInterval(function () {
+        const now = new Date();
+        // Check if it's 9 PM (21:00)
+        if (now.getHours() === 21 && now.getMinutes() === 0 && now.getSeconds() === 0) {
+            new Notification("LifeTrack Reminder", {
+                body: "Don't forget to complete your daily quests!",
+                icon: "/static/images/fire.png" // Placeholder
+            });
+        }
+    }, 1000);
+</script>
+{% endblock %}
